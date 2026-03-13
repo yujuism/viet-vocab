@@ -1,6 +1,9 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { subscribeWords } from '$lib/vocab.js';
+  import { user } from '$lib/authStore.js';
+  import { logout } from '$lib/auth.js';
+  import { goto } from '$app/navigation';
 
   let allWords = $state([]);
   let deck = $state([]);
@@ -10,12 +13,20 @@
   let known = $state(0);
   let learning = $state(0);
   let unsubscribe;
+  let currentUser = $state(null);
+
+  async function handleLogout() {
+    await logout();
+    goto('/login');
+  }
 
   onMount(() => {
+    const unsub = user.subscribe((u) => (currentUser = u));
     unsubscribe = subscribeWords((data) => {
       allWords = data;
       if (deck.length === 0 && data.length > 0) shuffle(data);
     });
+    return unsub;
   });
   onDestroy(() => unsubscribe?.());
 
@@ -64,6 +75,12 @@
   <div class="navbar-links">
     <a href="/" class="nav-link">📚 Kosakata</a>
     <a href="/game" class="nav-link active">🎴 Flashcard</a>
+    {#if currentUser}
+      <span class="nav-user">{currentUser.displayName ?? currentUser.email}</span>
+      <button class="nav-link btn-logout" onclick={handleLogout}>Keluar</button>
+    {:else}
+      <a href="/login" class="nav-link">Masuk</a>
+    {/if}
   </div>
 </nav>
 

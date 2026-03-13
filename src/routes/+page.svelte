@@ -1,6 +1,9 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import { addWord, subscribeWords, updateWord, deleteWord } from '$lib/vocab.js';
+  import { user, authLoading } from '$lib/authStore.js';
+  import { logout } from '$lib/auth.js';
+  import { goto } from '$app/navigation';
 
   // ── State ──────────────────────────────────────────────
   let words = $state([]);
@@ -21,13 +24,22 @@
   let currentPage = $state(1);
 
   // ── Lifecycle ──────────────────────────────────────────
+  let currentUser = $state(null);
+
   onMount(() => {
+    const unsub = user.subscribe((u) => (currentUser = u));
     unsubscribe = subscribeWords((data) => {
       words = data;
-      currentPage = 1; // reset to page 1 on data change
+      currentPage = 1;
     });
+    return unsub;
   });
   onDestroy(() => unsubscribe?.());
+
+  async function handleLogout() {
+    await logout();
+    goto('/login');
+  }
 
   // ── Computed ───────────────────────────────────────────
   let filtered = $derived(
@@ -127,12 +139,25 @@
   <div class="navbar-links">
     <a href="/" class="nav-link active">📚 Kosakata</a>
     <a href="/game" class="nav-link">🎴 Flashcard</a>
+    {#if currentUser}
+      <span class="nav-user">{currentUser.displayName ?? currentUser.email}</span>
+      <button class="nav-link btn-logout" onclick={handleLogout}>Keluar</button>
+    {:else}
+      <a href="/login" class="nav-link">Masuk</a>
+    {/if}
   </div>
 </nav>
 
 <main class="container">
 
-  <!-- ── Add Form ────────────────────────────────────── -->
+  <!-- ── Add Form (auth only) ────────────────────────── -->
+  {#if !currentUser}
+    <div class="auth-banner">
+      🔒 <a href="/login">Masuk</a> atau <a href="/register">Daftar</a> untuk menambah, mengedit, dan menghapus kosakata.
+    </div>
+  {/if}
+
+  {#if currentUser}
   <section class="card mb-4">
     <div class="card-header">
       <span>＋ Tambah Kosakata Baru</span>
@@ -171,6 +196,8 @@
     </div>
   </section>
 
+  {/if}
+
   <!-- ── Filter & Search ────────────────────────────── -->
   <div class="toolbar mb-3">
     <input
@@ -208,10 +235,12 @@
           {#if word.contoh}
             <div class="contoh">"{word.contoh}"</div>
           {/if}
+          {#if currentUser}
           <div class="card-actions">
             <button class="btn btn-edit" onclick={() => openEdit(word)}>✏️ Edit</button>
             <button class="btn btn-delete" onclick={() => handleDelete(word.id, word.kata)}>🗑️ Hapus</button>
           </div>
+          {/if}
         </div>
       {/each}
     </div>
