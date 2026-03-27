@@ -2,14 +2,20 @@
   import { login, loginWithGoogle } from '$lib/auth.js';
   import { user } from '$lib/authStore.js';
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { onMount } from 'svelte';
 
   let email = $state('');
   let password = $state('');
   let error = $state('');
+  let success = $state('');
   let loading = $state(false);
 
   onMount(() => {
+    // Show success message if coming from email verification link
+    if ($page.url.searchParams.get('verified') === '1') {
+      success = 'Email berhasil diverifikasi! Silakan login.';
+    }
     const unsub = user.subscribe((u) => {
       if (u) goto('/');
     });
@@ -45,11 +51,12 @@
 
   function getErrorMessage(code) {
     const messages = {
-      'auth/user-not-found': 'Email tidak ditemukan.',
-      'auth/wrong-password': 'Password salah.',
+      'auth/user-not-found': 'Akun tidak ditemukan. Periksa email kamu.',
+      'auth/wrong-password': 'Password salah. Coba lagi.',
       'auth/invalid-email': 'Format email tidak valid.',
       'auth/invalid-credential': 'Email atau password salah.',
-      'auth/too-many-requests': 'Terlalu banyak percobaan. Coba lagi nanti.'
+      'auth/too-many-requests': 'Terlalu banyak percobaan. Coba lagi nanti.',
+      'auth/email-not-verified': 'Email belum diverifikasi. Cek inbox kamu dan klik link verifikasi.'
     };
     return messages[code] ?? 'Terjadi kesalahan. Coba lagi.';
   }
@@ -69,6 +76,9 @@
       <p class="auth-sub">Selamat datang kembali!</p>
     </div>
 
+    {#if success}
+      <div class="auth-success">{success}</div>
+    {/if}
     {#if error}
       <div class="auth-error">{error}</div>
     {/if}

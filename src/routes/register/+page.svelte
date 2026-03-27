@@ -9,10 +9,13 @@
   let confirm = $state('');
   let error = $state('');
   let loading = $state(false);
+  let registered = $state(false);
+  let registeredEmail = $state('');
 
   onMount(() => {
+    // only redirect if already verified (e.g. Google user)
     const unsub = user.subscribe((u) => {
-      if (u) goto('/');
+      if (u?.emailVerified) goto('/');
     });
     return unsub;
   });
@@ -31,7 +34,8 @@
     loading = true;
     try {
       await register(email, password);
-      goto('/');
+      registeredEmail = email;
+      registered = true;
     } catch (err) {
       error = getErrorMessage(err.code);
     } finally {
@@ -60,6 +64,19 @@
     };
     return messages[code] ?? 'Terjadi kesalahan. Coba lagi.';
   }
+
+  async function handleGoogle() {
+    error = '';
+    loading = true;
+    try {
+      await loginWithGoogle();
+      goto('/');
+    } catch (err) {
+      error = getErrorMessage(err.code);
+    } finally {
+      loading = false;
+    }
+  }
 </script>
 
 <nav class="navbar">
@@ -71,42 +88,60 @@
 
 <div class="auth-container">
   <div class="auth-card">
-    <div class="auth-header">
-      <h1 class="auth-title">Daftar</h1>
-      <p class="auth-sub">Buat akun baru untuk mulai belajar!</p>
-    </div>
+    {#if registered}
+      <div class="auth-header">
+        <div class="verify-icon">📧</div>
+        <h1 class="auth-title">Cek Email Kamu!</h1>
+        <p class="auth-sub">Link verifikasi telah dikirim ke</p>
+        <p class="verify-email">{registeredEmail}</p>
+      </div>
+      <div class="verify-steps">
+        <p>1. Buka email kamu</p>
+        <p>2. Klik link verifikasi dari Firebase</p>
+        <p>3. Kamu akan diarahkan ke halaman login</p>
+        <p>4. Login dengan email dan password yang sudah didaftarkan</p>
+      </div>
+      <a href="/login" class="btn btn-primary btn-full" style="display:block;text-align:center;text-decoration:none;margin-top:1rem;">
+        Ke Halaman Login
+      </a>
+    {:else}
+      <div class="auth-header">
+        <h1 class="auth-title">Daftar</h1>
+        <p class="auth-sub">Buat akun baru untuk mulai belajar!</p>
+      </div>
 
-    {#if error}
-      <div class="auth-error">{error}</div>
-    {/if}
+      {#if error}
+        <div class="auth-error">{error}</div>
+      {/if}
 
-    <form onsubmit={handleRegister}>
-      <div class="field">
-        <label for="email">Email</label>
-        <input id="email" type="email" bind:value={email} placeholder="email@contoh.com" required />
-      </div>
-      <div class="field">
-        <label for="password">Password</label>
-        <input id="password" type="password" bind:value={password} placeholder="Minimal 6 karakter" required />
-      </div>
-      <div class="field">
-        <label for="confirm">Konfirmasi Password</label>
-        <input id="confirm" type="password" bind:value={confirm} placeholder="Ulangi password" required />
-      </div>
-      <button type="submit" class="btn btn-primary btn-full" disabled={loading}>
-        {loading ? 'Memproses...' : 'Daftar'}
+      <form onsubmit={handleRegister}>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" bind:value={email} placeholder="email@contoh.com" required />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" bind:value={password} placeholder="Minimal 6 karakter" required />
+        </div>
+        <div class="field">
+          <label for="confirm">Konfirmasi Password</label>
+          <input id="confirm" type="password" bind:value={confirm} placeholder="Ulangi password" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" disabled={loading}>
+          {loading ? 'Mengirim verifikasi...' : 'Daftar'}
+        </button>
+      </form>
+
+      <div class="auth-divider"><span>atau</span></div>
+
+      <button class="btn btn-google btn-full" onclick={handleGoogle} disabled={loading}>
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="18" />
+        Daftar dengan Google
       </button>
-    </form>
 
-    <div class="auth-divider"><span>atau</span></div>
-
-    <button class="btn btn-google btn-full" onclick={handleGoogle} disabled={loading}>
-      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="18" />
-      Daftar dengan Google
-    </button>
-
-    <p class="auth-footer">
-      Sudah punya akun? <a href="/login">Masuk</a>
-    </p>
+      <p class="auth-footer">
+        Sudah punya akun? <a href="/login">Masuk</a>
+      </p>
+    {/if}
   </div>
 </div>
