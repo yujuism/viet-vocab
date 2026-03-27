@@ -64,19 +64,6 @@
     };
     return messages[code] ?? 'Terjadi kesalahan. Coba lagi.';
   }
-
-  async function handleGoogle() {
-    error = '';
-    loading = true;
-    try {
-      await loginWithGoogle();
-      goto('/');
-    } catch (err) {
-      error = getErrorMessage(err.code);
-    } finally {
-      loading = false;
-    }
-  }
 </script>
 
 <nav class="navbar">

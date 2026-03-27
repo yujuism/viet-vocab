@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getAuth, browserLocalPersistence } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -14,4 +14,10 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const db = getDatabase(app);
-export const auth = getAuth(app);
+let auth;
+try {
+  auth = initializeAuth(app, { persistence: browserLocalPersistence });
+} catch {
+  auth = getAuth(app);
+}
+export { auth };
